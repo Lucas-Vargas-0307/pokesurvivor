@@ -6,6 +6,10 @@
   /** ¿Se puede usar lo online? Si no, explica por qué. */
   function needOnline() {
     if (G.DB.online) return true;
+    if (G.DB.needsCustomProject) {
+      G.UI.toast('Para jugar online en este dominio, configura tu propio Firebase gratis (ver docs/CONFIGURAR_NUBE.md).', 4500);
+      return false;
+    }
     G.UI.toast(G.DB.guest ? 'Crea una cuenta para jugar con amigos y salir en el ranking.'
       : 'Esto necesita la versión online del juego (con la nube).', 3200);
     return false;

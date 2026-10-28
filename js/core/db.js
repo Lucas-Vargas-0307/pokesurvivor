@@ -568,6 +568,17 @@ G.DB = (() => {
     return false;
   }
 
+  function isOfficialHost(host) {
+    const h = (host || '').toLowerCase();
+    return h === 'pokesurvivor.com' || h === 'www.pokesurvivor.com' || h === 'jpter78.github.io' || /^(localhost|127\.0\.0\.1)$/.test(h);
+  }
+
+  function isOfficialOnFork() {
+    const cfg = G.FIREBASE_CONFIG;
+    const h = typeof location !== 'undefined' && location.hostname;
+    return !!(cfg && OFFICIAL_PROJECTS.includes(cfg.projectId) && !isOfficialHost(h));
+  }
+
   async function initCloud() {
     const cfg = G.FIREBASE_CONFIG;
     if (!/^https?:$/.test(location.protocol)) { localReason = 'file'; return false; }
@@ -833,6 +844,9 @@ G.DB = (() => {
   }
 
   function authError(e) {
+    if (isOfficialOnFork()) {
+      return 'Este fork usa el Firebase oficial, que bloquea dominios externos. Configura tu propio Firebase gratis en js/core/firebase-config.js (ver docs/CONFIGURAR_NUBE.md).';
+    }
     const c = (e && e.code) || '';
     const M = {
       'auth/email-already-in-use': 'Ese nombre ya existe.',
@@ -1072,6 +1086,7 @@ G.DB = (() => {
     get hasGoogle() { return hasGoogle(); }, linkGoogle,
     get mode() { return mode; },
     get localReason() { return localReason; },
+    get needsCustomProject() { return isOfficialOnFork(); },
     get syncState() { return syncState; },
     get user() { return user; },
     get guest() { return guest; },

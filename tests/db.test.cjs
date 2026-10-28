@@ -177,7 +177,16 @@ test('Guardar dos veces seguidas y salir del juego: la segunda se sube al salir'
 test('initCloud: validación de dominios y proyecto propio de Firebase', async () => {
   const checkHost = async ({ hostname, projectId, built = true, emulator = false }) => {
     const store = new Map();
-    const auth = { setPersistence: async () => {}, useEmulator() {}, onAuthStateChanged: cb => { setImmediate(() => cb({ uid: 'U1', displayName: 'Ash' })); return () => {}; } };
+    const auth = {
+      setPersistence: async () => {},
+      useEmulator() {},
+      onAuthStateChanged: cb => { setImmediate(() => cb(null)); return () => {}; },
+      createUserWithEmailAndPassword: async () => {
+        const err = new Error('Requests from referer are blocked.');
+        err.code = 'auth/network-request-failed';
+        throw err;
+      }
+    };
     const db = { useEmulator() {}, settings() {}, collection: () => ({ doc: () => ref }) };
     const G = {
       BUILT: built,
@@ -196,29 +205,54 @@ test('initCloud: validación de dominios y proyecto propio de Firebase', async (
     vm.createContext(ctx);
     vm.runInContext(SRC, ctx);
     await ctx.G.DB.ready();
-    return ctx.G.DB.localReason;
+    const reg = await ctx.G.DB.register('AshKetchum', '123456');
+    return {
+      localReason: ctx.G.DB.localReason,
+      needsCustomProject: ctx.G.DB.needsCustomProject,
+      regErr: reg.error
+    };
   };
 
-  // 1. lucas-vargas-0307.github.io permitido con proyecto oficial
-  assert.equal(await checkHost({ hostname: 'lucas-vargas-0307.github.io', projectId: 'pokesurvivor-free' }), '');
+  // 1. lucas-vargas-0307.github.io permitido con proyecto oficial (marca que necesita proyecto propio)
+  const rLucas = await checkHost({ hostname: 'lucas-vargas-0307.github.io', projectId: 'pokesurvivor-free' });
+  assert.equal(rLucas.localReason, '');
+  assert.equal(rLucas.needsCustomProject, true);
+  assert.match(rLucas.regErr, /CONFIGURAR_NUBE\.md/);
 
   // 2. cualquier fork *.github.io permitido con proyecto oficial
-  assert.equal(await checkHost({ hostname: 'otro-fork.github.io', projectId: 'pokesurvivor-free' }), '');
+  const rOtro = await checkHost({ hostname: 'otro-fork.github.io', projectId: 'pokesurvivor-free' });
+  assert.equal(rOtro.localReason, '');
+  assert.equal(rOtro.needsCustomProject, true);
 
   // 3. dominio no autorizado bloqueado si usa el proyecto oficial
-  assert.equal(await checkHost({ hostname: 'sitio-copia.com', projectId: 'pokesurvivor-free' }), 'host');
+  const rBloq = await checkHost({ hostname: 'sitio-copia.com', projectId: 'pokesurvivor-free' });
+  assert.equal(rBloq.localReason, 'host');
 
   // 4. cualquier host permitido si se configura un proyecto propio de Firebase
-  assert.equal(await checkHost({ hostname: 'sitio-copia.com', projectId: 'mi-pokesurvivor-propio' }), '');
-  assert.equal(await checkHost({ hostname: 'mi-dominio.es', projectId: 'mi-pokesurvivor-propio' }), '');
+  const rPropio = await checkHost({ hostname: 'sitio-copia.com', projectId: 'mi-pokesurvivor-propio' });
+  assert.equal(rPropio.localReason, '');
+  assert.equal(rPropio.needsCustomProject, false);
+
+  const rDominio = await checkHost({ hostname: 'mi-dominio.es', projectId: 'mi-pokesurvivor-propio' });
+  assert.equal(rDominio.localReason, '');
+  assert.equal(rDominio.needsCustomProject, false);
 
   // 5. IP local permitida
-  assert.equal(await checkHost({ hostname: '192.168.1.120', projectId: 'pokesurvivor-free' }), '');
+  const rLocalIp = await checkHost({ hostname: '192.168.1.120', projectId: 'pokesurvivor-free' });
+  assert.equal(rLocalIp.localReason, '');
 
   // 6. dev.html sin BUILT en host remoto con proyecto oficial se bloquea por dev
-  assert.equal(await checkHost({ hostname: 'lucas-vargas-0307.github.io', projectId: 'pokesurvivor-free', built: false }), 'dev');
+  const rDevBloq = await checkHost({ hostname: 'lucas-vargas-0307.github.io', projectId: 'pokesurvivor-free', built: false });
+  assert.equal(rDevBloq.localReason, 'dev');
 
   // 7. dev.html con proyecto propio de Firebase sí se permite
-  assert.equal(await checkHost({ hostname: 'lucas-vargas-0307.github.io', projectId: 'mi-pokesurvivor-propio', built: false }), '');
+  const rDevPropio = await checkHost({ hostname: 'lucas-vargas-0307.github.io', projectId: 'mi-pokesurvivor-propio', built: false });
+  assert.equal(rDevPropio.localReason, '');
+  assert.equal(rDevPropio.needsCustomProject, false);
+
+  // 8. dominio oficial pokesurvivor.com no necesita proyecto propio
+  const rOficial = await checkHost({ hostname: 'pokesurvivor.com', projectId: 'pokesurvivor-free' });
+  assert.equal(rOficial.localReason, '');
+  assert.equal(rOficial.needsCustomProject, false);
 });
 
