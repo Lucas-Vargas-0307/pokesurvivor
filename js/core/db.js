@@ -541,23 +541,41 @@ G.DB = (() => {
   }
 
   /*
-   * La nube (Firebase) sólo desde la web oficial: el
-   * código está en GitHub, y una copia publicada en otra web sin cambiar
-   * firebase-config.js guardaría sus cuentas y partidas en NUESTRO proyecto
-   * (y lo pagaríamos nosotros). Ahí el juego va en modo local. Lo que lo
-   * cierra de verdad es la clave de la API restringida a estos dominios en
-   * Google Cloud; esto frena las copias que ni lo miran (14-10-2026).
+   * La nube (Firebase): se permite en los dominios oficiales, en cualquier fork
+   * de GitHub Pages (*.github.io, incluyendo lucas-vargas-0307.github.io), en
+   * servidores locales (localhost / 127.0.0.1 / IPs de red local) y en cualquier
+   * host si el usuario ha configurado un proyecto propio de Firebase en firebase-config.js.
    */
-  const HOSTS = ['pokesurvivor.com', 'www.pokesurvivor.com', 'jpter78.github.io', 'localhost', '127.0.0.1'];
+  const OFFICIAL_PROJECTS = ['pokesurvivor-free', 'pokesurvivor-jpter'];
+  const HOSTS = [
+    'pokesurvivor.com',
+    'www.pokesurvivor.com',
+    'jpter78.github.io',
+    'lucas-vargas-0307.github.io',
+    'localhost',
+    '127.0.0.1'
+  ];
+
+  function isAllowedCloudHost(host, cfg) {
+    if (!host) return false;
+    const h = host.toLowerCase();
+    if (HOSTS.includes(h)) return true;
+    if (h.endsWith('.github.io')) return true;
+    if (/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/.test(h)) return true;
+    if (/^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(h)) return true;
+    // Proyecto propio de Firebase: permitir cualquier host (su propio dominio, Vercel, etc.)
+    if (cfg && cfg.projectId && !OFFICIAL_PROJECTS.includes(cfg.projectId)) return true;
+    return false;
+  }
 
   async function initCloud() {
     const cfg = G.FIREBASE_CONFIG;
     if (!/^https?:$/.test(location.protocol)) { localReason = 'file'; return false; }
-    if (cfg && !cfg.emulator && !HOSTS.includes(location.hostname)) { localReason = 'host'; return false; }
+    if (cfg && !cfg.emulator && !isAllowedCloudHost(location.hostname, cfg)) { localReason = 'host'; return false; }
     // dev.html (el código sin encerrar: G en la consola, con todo a mano) sólo usa la
-    // nube en este ordenador. En la web iba con la cuenta de quien la abriera y se
-    // podía poner las monedas, tickets o Pokémon que quisiera y guardarlo (26-10-2026).
-    if (!G.BUILT && !/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) { localReason = 'dev'; return false; }
+    // nube en este ordenador o con un proyecto propio de Firebase.
+    const isCustomProject = cfg && cfg.projectId && !OFFICIAL_PROJECTS.includes(cfg.projectId);
+    if (!G.BUILT && !isCustomProject && !/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) { localReason = 'dev'; return false; }
     if (!cfg || !cfg.apiKey || !cfg.projectId) { localReason = 'config'; return false; }
     await loadScript(SDK + 'firebase-app-compat.js');
     await loadScript(SDK + 'firebase-auth-compat.js');

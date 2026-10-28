@@ -173,3 +173,52 @@ test('Guardar dos veces seguidas y salir del juego: la segunda se sube al salir'
   NOW += 17000; A.hide(); await settle();            // a los 22 s sales del juego
   assert.equal(cloud.save.tickets.t1, 5, 'se ha subido al salir');
 });
+
+test('initCloud: validación de dominios y proyecto propio de Firebase', async () => {
+  const checkHost = async ({ hostname, projectId, built = true, emulator = false }) => {
+    const store = new Map();
+    const auth = { setPersistence: async () => {}, useEmulator() {}, onAuthStateChanged: cb => { setImmediate(() => cb({ uid: 'U1', displayName: 'Ash' })); return () => {}; } };
+    const db = { useEmulator() {}, settings() {}, collection: () => ({ doc: () => ref }) };
+    const G = {
+      BUILT: built,
+      FIREBASE_CONFIG: { apiKey: 'key123', projectId, emulator }
+    };
+    const ctx = {
+      G, localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+      console: { warn() {}, log() {} }, TextEncoder, setTimeout: fn => setImmediate(fn), clearTimeout() {},
+      firebase: { initializeApp() {}, auth: Object.assign(() => auth, { Auth: { Persistence: { LOCAL: 1 } } }),
+                  firestore: Object.assign(() => db, { FieldValue: { serverTimestamp: () => 0 } }) },
+      location: { protocol: 'https:', hostname }, navigator: { onLine: true },
+      document: { createElement: () => ({}), head: { appendChild: el => setImmediate(el.onload) }, hidden: false,
+        addEventListener: () => {} },
+      window: { addEventListener: () => {} }, Date: { now: () => NOW }
+    };
+    vm.createContext(ctx);
+    vm.runInContext(SRC, ctx);
+    await ctx.G.DB.ready();
+    return ctx.G.DB.localReason;
+  };
+
+  // 1. lucas-vargas-0307.github.io permitido con proyecto oficial
+  assert.equal(await checkHost({ hostname: 'lucas-vargas-0307.github.io', projectId: 'pokesurvivor-free' }), '');
+
+  // 2. cualquier fork *.github.io permitido con proyecto oficial
+  assert.equal(await checkHost({ hostname: 'otro-fork.github.io', projectId: 'pokesurvivor-free' }), '');
+
+  // 3. dominio no autorizado bloqueado si usa el proyecto oficial
+  assert.equal(await checkHost({ hostname: 'sitio-copia.com', projectId: 'pokesurvivor-free' }), 'host');
+
+  // 4. cualquier host permitido si se configura un proyecto propio de Firebase
+  assert.equal(await checkHost({ hostname: 'sitio-copia.com', projectId: 'mi-pokesurvivor-propio' }), '');
+  assert.equal(await checkHost({ hostname: 'mi-dominio.es', projectId: 'mi-pokesurvivor-propio' }), '');
+
+  // 5. IP local permitida
+  assert.equal(await checkHost({ hostname: '192.168.1.120', projectId: 'pokesurvivor-free' }), '');
+
+  // 6. dev.html sin BUILT en host remoto con proyecto oficial se bloquea por dev
+  assert.equal(await checkHost({ hostname: 'lucas-vargas-0307.github.io', projectId: 'pokesurvivor-free', built: false }), 'dev');
+
+  // 7. dev.html con proyecto propio de Firebase sí se permite
+  assert.equal(await checkHost({ hostname: 'lucas-vargas-0307.github.io', projectId: 'mi-pokesurvivor-propio', built: false }), '');
+});
+
