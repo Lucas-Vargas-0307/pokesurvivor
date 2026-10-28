@@ -507,3 +507,34 @@ test('net busy: only an open channel with a big backlog counts as busy', async (
   assert.equal(N.busy('a'), true);
   assert.equal(N.busy('nadie'), false);
 });
+
+test('co-op 8 players: MAX_PLAYERS is 8, 8 distinct colors, and 8-player setup works', () => {
+  const G = { DB: { onLeave() {} }, NetCodec: codec(), Net: { uid: 'u0', on() {}, onPeer() {}, slow: () => false, busy: () => false, send() {}, toHost() {} }, DEX_BY: { 25: { name: 'Pikachu', dex: 25 } }, baseStartOf: () => 'thundershock' };
+  G.Sprites = { preload() {} }; G.U = { dist2: (x, y, a, b) => (x - a) ** 2 + (y - b) ** 2 };
+  G.Player = class { constructor(mon) { this.mon = mon; this.maxHp = 100; } };
+  new Function('G', source('js/net/social.js'))(G);
+  new Function('G', 'document', source('js/net/coop.js'))(G, { addEventListener() {} });
+
+  assert.equal(G.Social.MAX_PLAYERS, 8);
+  assert.equal(G.Coop.COLORS.length, 8);
+  const uniqueColors = new Set(G.Coop.COLORS);
+  assert.equal(uniqueColors.size, 8);
+  for (const c of G.Coop.COLORS) {
+    assert.match(c, /^#[0-9a-fA-F]{6}$/);
+  }
+
+  const members = Array.from({ length: 8 }, (_, i) => ({ uid: `u${i}`, name: `Player${i}`, dex: 25 }));
+  const local = { x: 0, y: 0, uid: 'u0', maxHp: 100 };
+  G.Coop.begin({ host: 'u0', members }, local, { team: () => ({}), choosing: () => false });
+
+  const allPlayers = G.Coop.players();
+  assert.equal(allPlayers.length, 8);
+  const puppets = G.Coop.puppets();
+  assert.equal(puppets.length, 7);
+  for (let i = 0; i < 7; i++) {
+    assert.equal(puppets[i].tagColor, G.Coop.COLORS[i + 1]);
+  }
+  assert.equal(local.tagColor, G.Coop.COLORS[0]);
+  G.Coop.end();
+});
+

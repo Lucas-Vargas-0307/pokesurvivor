@@ -23,7 +23,7 @@
  */
 G.Coop = (() => {
   const ANIMS = ['Idle', 'Walk', 'Attack', 'Shoot', 'Charge', 'Hurt', 'Faint'];
-  const COLORS = ['#ffcb3d', '#5fc8ff', '#7ee07a', '#ff8ad8'];
+  const COLORS = ['#ffcb3d', '#5fc8ff', '#7ee07a', '#ff8ad8', '#ff9f43', '#a29bfe', '#00d2d3', '#ff6b6b'];
   // Mensajes por segundo: 15 por la conexión directa y 3 por el relé de la
   // Realtime Database (apagado: 1 $ el GB).
   const RATE_FAST = 1 / 15, RATE_SLOW = 1 / 3;
