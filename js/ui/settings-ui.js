@@ -152,7 +152,7 @@ G.SettingsUI = (() => {
                    offline: 'Sin conexión: se subirá al volver', local: 'Guardado sólo en este navegador', guest: 'Invitado: no se guarda' };
     if (G.DB.guest) {
       box.innerHTML = section('Cuenta', 'Estás jugando como <b>invitado</b>: tu progreso no se guarda al salir.')
-        + `<button class="btn gold" id="set-login">Crear cuenta o entrar</button>`;
+        + `<div class="row wrap" style="gap:8px;margin-top:10px"><button class="btn gold" id="set-login">Crear cuenta o entrar</button><button class="btn" id="set-import-btn">Importar partida de pokesurvivor.com</button></div>`;
       return;
     }
     const nick = G.Social.me ? G.Social.me.name : (G.DB.user || '');
@@ -191,6 +191,80 @@ G.SettingsUI = (() => {
       G.Audio.music(null);
       G.Flow.toLogin();
     };
+  }
+
+  
+  function showImportModal() {
+    if (G.DB.guest) {
+      alert('Crea una cuenta o inicia sesión primero para que tu partida importada se guarde en tu nube.');
+      close();
+      leave();
+      return;
+    }
+    const el = document.createElement('section');
+    el.className = 'scr dim';
+    el.style.zIndex = '70';
+    el.style.display = 'flex';
+    el.style.alignItems = 'center';
+    el.style.justifyContent = 'center';
+    el.style.position = 'fixed';
+    el.style.inset = '0';
+    el.innerHTML = `<div class="box center" style="max-width:480px;width:90%;text-align:left;box-sizing:border-box">
+      <h3 style="text-align:center;margin-top:0">Importar partida de pokesurvivor.com</h3>
+      <p class="sub" style="font-size:12px;margin:8px 0">Pega aquí el código que has copiado en la web oficial:</p>
+      <textarea id="import-text" rows="5" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:11px;resize:vertical;padding:8px;border-radius:6px;border:1px solid rgba(244,248,255,.2);background:rgba(0,0,0,.4);color:#fff" placeholder="Pega el código aquí con Ctrl + V..."></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn small ghost" id="import-paste-btn" type="button">📋 Pegar del portapapeles</button>
+        <span class="grow"></span>
+      </div>
+      <p class="sub" style="font-size:11px;opacity:0.85;margin:10px 0">
+        <b>¿Cómo obtener tu código?</b> En <i>pokesurvivor.com</i> abre la consola (<kbd>F12</kbd>) y ejecuta:<br>
+        <code style="user-select:all;background:rgba(0,0,0,0.3);padding:2px 4px;border-radius:4px;display:inline-block;margin-top:4px;word-break:break-all">copy(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('ps.cloud.'))))</code>
+      </p>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap">
+        <button class="btn ghost" id="import-cancel" type="button">Cancelar</button>
+        <button class="btn gold" id="import-ok" type="button">Importar y guardar</button>
+      </div>
+      <p class="note center" id="import-err" style="color:#ffb0b8;margin-top:8px;font-size:12px"></p>
+    </div>`;
+    document.body.appendChild(el);
+    const area = el.querySelector('#import-text');
+    const err = el.querySelector('#import-err');
+    const okBtn = el.querySelector('#import-ok');
+    const pasteBtn = el.querySelector('#import-paste-btn');
+
+    if (pasteBtn && navigator.clipboard && navigator.clipboard.readText) {
+      pasteBtn.onclick = async () => {
+        try {
+          const t = await navigator.clipboard.readText();
+          if (t) { area.value = t; area.focus(); }
+        } catch (e) {
+          err.textContent = 'No se pudo leer el portapapeles automáticamente. Pégalo con Ctrl + V.';
+        }
+      };
+    } else if (pasteBtn) {
+      pasteBtn.remove();
+    }
+
+    el.querySelector('#import-cancel').onclick = () => el.remove();
+    okBtn.onclick = async () => {
+      const val = (area.value || '').trim();
+      if (!val) { err.textContent = 'Pega primero el código de tu partida.'; area.focus(); return; }
+      okBtn.disabled = true;
+      okBtn.textContent = 'Importando…';
+      err.textContent = '';
+      const r = await G.DB.importSave(val);
+      if (r && r.ok) {
+        el.remove();
+        G.UI.toast('¡Partida importada con éxito!');
+        setTimeout(() => location.reload(), 900);
+      } else {
+        okBtn.disabled = false;
+        okBtn.textContent = 'Importar y guardar';
+        err.textContent = (r && r.error) || 'No se pudo importar la partida.';
+      }
+    };
+    setTimeout(() => area.focus(), 60);
   }
 
   /** Cerrar sesión (si estás en una partida, se abandona). */
