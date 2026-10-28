@@ -162,7 +162,8 @@ G.SettingsUI = (() => {
       + `<div class="set-row"><div class="grow"><b>Tipo de cuenta</b></div><span>${esc(kind)}</span></div>`
       + `<div class="set-row"><div class="grow"><b>Partida</b></div><span>${esc(SYNC[st] || st)}</span></div>`
       + `<div class="row wrap" style="gap:8px;margin-top:12px">
-           <button class="btn" id="set-logout">Cerrar sesión</button>
+           <button class="btn gold" id="set-import-btn">Importar partida de pokesurvivor.com</button>
+            <button class="btn" id="set-logout">Cerrar sesión</button>
            <button class="btn danger" id="set-delete">Borrar cuenta</button>
          </div><p class="note" id="set-msg"></p>`;
   }
@@ -175,6 +176,7 @@ G.SettingsUI = (() => {
     const full = $('set-full'); if (full) full.onclick = toggleFull;
     const lay = $('set-layout'); if (lay) lay.onclick = () => G.LayoutUI.open();
     box.querySelectorAll('[data-lang]').forEach(b => { b.onclick = () => { if (b.dataset.lang !== G.I18n.lang) G.I18n.set(b.dataset.lang); }; });
+    const imp = $('set-import-btn'); if (imp) imp.onclick = () => showImportModal();
     const lo = $('set-login'); if (lo) lo.onclick = () => { close(); leave(); };
     const out = $('set-logout'); if (out) out.onclick = () => { close(); leave(); };
     const del = $('set-delete');

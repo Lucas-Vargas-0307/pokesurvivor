@@ -1072,8 +1072,27 @@ G.DB = (() => {
     return true;
   }
 
+  /** Importa y fusiona una partida externa (p. ej. de pokesurvivor.com). */
+  async function importSave(raw) {
+    if (!save || guest) return { ok: false, error: 'Inicia sesión o crea una cuenta primero para poder importar tu partida.' };
+    try {
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!parsed || typeof parsed !== 'object') return { ok: false, error: 'El formato de la partida no es válido.' };
+      const cleaned = migrate(parsed, user || '');
+      const merged = merge(save, cleaned);
+      applyInPlace(merged);
+      save.updated = Date.now();
+      if (mode === 'cloud' && uid) write(K_CLOUD + uid, save);
+      else if (key) write(K_SAVE + key, save);
+      await saveNow();
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: 'Error al importar: ' + (e.message || e) };
+    }
+  }
+
   return {
-    ready, register, login, loginWithGoogle, playAsGuest, logout, commit, deleteAccount, flush: pushNow, saveNow,
+    ready, register, login, loginWithGoogle, playAsGuest, logout, commit, deleteAccount, flush: pushNow, saveNow, importSave,
     owns, grant, ownsShiny, grantShiny, merge, setName, upgradesOf, isFav, setFav,
     onSync(fn) { listeners.add(fn); },
     onLeave(fn) { leaveHooks.push(fn); },
