@@ -10,6 +10,7 @@
   const rows = [
     ["Tipo", "Type", "Tipo", "Tipo", "属性", "屬性"],
     ["Nuevo", "Nouveau", "Novità", "Novidades", "新增", "新增"],
+    ["Juega en grupo, hasta 8", "Joue en groupe, jusqu'à 8", "Gioca in gruppo, fino a 8", "Jogue em grupo, até 8", "最多 8 人一起游玩", "最多 8 人一起遊玩"],
     ["Cambios", "Modifications", "Modifiche", "Alterações", "变更", "變更"],
     ["Arreglos", "Corrections", "Correzioni", "Correções", "修复", "修正"],
 

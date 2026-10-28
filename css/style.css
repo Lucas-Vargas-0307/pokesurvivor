@@ -674,8 +674,8 @@ input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 
 .rk-row .pos { font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 4px; color: var(--muted); }
 .rk-row.top1 .pos { color: var(--gold); }
 .rk-row.top2 .pos { color: #dfe7f5; }
-.rk-row.top3 .pos { color: #e0a36b; }
-.rk-row .mons { display: flex; }
+.rk-row .mons { display: flex; flex-wrap: wrap; max-width: 180px; align-items: center; }
+.rk-row .mons canvas { max-width: 36px; height: auto; }
 .rk-row .who { display: flex; flex-direction: column; min-width: 0; }
 .rk-row .who b { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rk-row .who small { color: var(--muted); font-size: 12px; }

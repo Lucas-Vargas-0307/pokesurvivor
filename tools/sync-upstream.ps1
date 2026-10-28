@@ -11,11 +11,15 @@
 
 .PARAMETER Expose
     Si se especifica, compila con '--expose' para mantener window.G accesible en depuración.
+
+.PARAMETER ForceRebuild
+    Fuerza la recompilación y ejecución de tests aunque upstream no tenga nuevos commits.
 #>
 
 [CmdletBinding()]
 param(
-    [switch]$Expose
+    [switch]$Expose,
+    [switch]$ForceRebuild
 )
 
 $ErrorActionPreference = "Stop"
@@ -26,8 +30,14 @@ Set-Location $rootDir
 
 Write-Host "=== Sincronización con Upstream (JPTER78/pokesurvivor) ===" -ForegroundColor Cyan
 
+# 0. Comprobar rama actual
+$currentBranch = (git branch --show-current).Trim()
+if ($currentBranch -ne "main") {
+    Write-Host "[AVISO] La rama actual es '$currentBranch'. Se recomienda sincronizar en 'main'." -ForegroundColor Yellow
+}
+
 # 1. Configurar remote upstream si no existe
-$remotes = git remote
+$remotes = @(git remote)
 if ($remotes -notcontains "upstream") {
     Write-Host "[1/5] Añadiendo remote upstream..." -ForegroundColor Yellow
     git remote add upstream https://github.com/JPTER78/pokesurvivor.git
@@ -43,16 +53,21 @@ git fetch upstream main
 $upstreamRev = (git rev-parse upstream/main).Trim()
 $mergeBase = (git merge-base HEAD upstream/main).Trim()
 
-if ($upstreamRev -eq $mergeBase) {
+if ($upstreamRev -eq $mergeBase -and -not $ForceRebuild) {
     Write-Host "[OK] Ya estás completamente al día con el repositorio original." -ForegroundColor Green
+    Write-Host "Usa '-ForceRebuild' si deseas forzar la recompilación de la distribución." -ForegroundColor Gray
     exit 0
 }
 
-Write-Host "[3/5] Se han detectado actualizaciones en upstream. Fusionando..." -ForegroundColor Yellow
-git merge upstream/main -m "Merge upstream updates from JPTER78/pokesurvivor"
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "[ERROR] Hubo un conflicto al fusionar. Resuelve los conflictos manualmente y luego compila." -ForegroundColor Red
-    exit 1
+if ($upstreamRev -ne $mergeBase) {
+    Write-Host "[3/5] Se han detectado actualizaciones en upstream. Fusionando..." -ForegroundColor Yellow
+    git merge upstream/main -m "Merge upstream updates from JPTER78/pokesurvivor"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[ERROR] Hubo un conflicto al fusionar. Resuelve los conflictos manualmente y luego compila." -ForegroundColor Red
+        exit 1
+    }
+} else {
+    Write-Host "[3/5] Upstream al día. Ejecutando recompilación forzada..." -ForegroundColor Yellow
 }
 
 # 4. Reconstruir los archivos de distribución
@@ -80,4 +95,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "=== Sincronización completada con éxito al 100% ===" -ForegroundColor Green
-Write-Host "Puedes revisar los cambios con 'git status' y subirlos con 'git push origin main'." -ForegroundColor Cyan
+Write-Host "Revisa los cambios con 'git status' y súbelos con:" -ForegroundColor Cyan
+Write-Host "  git add -A" -ForegroundColor White
+Write-Host "  git commit -m 'build: reconstruir distribución tras actualización'" -ForegroundColor White
+Write-Host "  git push origin main" -ForegroundColor White

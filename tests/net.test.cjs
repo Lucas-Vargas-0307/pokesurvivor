@@ -523,8 +523,12 @@ test('co-op 8 players: MAX_PLAYERS is 8, 8 distinct colors, and 8-player setup w
     assert.match(c, /^#[0-9a-fA-F]{6}$/);
   }
 
+  // Dificultad y escalado con 8 jugadores
+  assert.equal(G.Coop.scaleHp(8), 1 + 0.3 * 7);
+  assert.equal(G.Coop.scaleRate(8), 1 + 0.75 * 7);
+
   const members = Array.from({ length: 8 }, (_, i) => ({ uid: `u${i}`, name: `Player${i}`, dex: 25 }));
-  const local = { x: 0, y: 0, uid: 'u0', maxHp: 100 };
+  const local = { x: 0, y: 0, uid: 'u0', maxHp: 100, xpMul: 1 };
   G.Coop.begin({ host: 'u0', members }, local, { team: () => ({}), choosing: () => false });
 
   const allPlayers = G.Coop.players();
@@ -535,6 +539,11 @@ test('co-op 8 players: MAX_PLAYERS is 8, 8 distinct colors, and 8-player setup w
     assert.equal(puppets[i].tagColor, G.Coop.COLORS[i + 1]);
   }
   assert.equal(local.tagColor, G.Coop.COLORS[0]);
+
+  // xpFactor debe devolver un valor numérico finito positivo
+  const factor = G.Coop.xpFactor();
+  assert.ok(typeof factor === 'number' && Number.isFinite(factor) && factor > 0);
+
   G.Coop.end();
 });
 

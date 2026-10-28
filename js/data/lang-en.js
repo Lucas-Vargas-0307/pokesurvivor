@@ -275,7 +275,7 @@ G.I18n.add({
   // ---------------- menú ----------------
   'Jugar': 'Play', 'Entra en la mazmorra': 'Enter the dungeon', 'Pokémon': 'Pokémon', 'Tu colección': 'Your collection',
   'Mejoras': 'Upgrades', 'Haz más fuerte cada run': 'Make every run stronger', '9 regiones · Pokémon y shinies': '9 regions · Pokémon and shinies',
-  'Misiones': 'Missions', 'Misiones, logros y perfil': 'Missions, achievements and profile', 'Amigos': 'Friends', 'Juega en grupo, hasta 4': 'Play in a group, up to 4',
+  'Misiones': 'Missions', 'Misiones, logros y perfil': 'Missions, achievements and profile', 'Amigos': 'Friends', 'Juega en grupo, hasta 4': 'Play in a group, up to 4', 'Juega en grupo, hasta 8': 'Play in a group, up to 8',
   'Ranking': 'Leaderboard', 'Quién aguanta más': 'Who survives longest', 'Ajustes': 'Settings', 'Sonido, gráficos, controles y cuenta': 'Sound, graphics, controls and account',
   '{x} premio por recoger': '{x} reward to claim', '{x} premios por recoger': '{x} rewards to claim', 'premio por recoger': 'reward to claim', 'premios por recoger': 'rewards to claim',
   'Volver a tu sala ({x})': 'Back to your room ({x})', '{x} en línea': '{x} online', 'en línea': 'online',
